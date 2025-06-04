@@ -1,0 +1,9 @@
+# Environment variables
+.env
+
+# Node modules
+node_modules/
+
+# Prisma SQLite temp files (if you were using SQLite)
+# prisma/*.db
+# prisma/*.db-journal
