@@ -1,4 +1,5 @@
-// This is the Prisma schema file,
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -11,14 +12,17 @@ datasource db {
 
 // User Model
 model User {
-  id        String    @id @default(uuid()) 
-  email     String    @unique 
-  name      String?   
-  password  String    
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String?
+  password  String
   createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt 
+  updatedAt DateTime  @updatedAt
 
-  skills    Skill[]  
+  skills          Skill[]         
+  bookingsMade    Booking[]       @relation("StudentBookings") 
+  bookingsReceived Booking[]      @relation("ProviderBookings") 
+  reviewsWritten Review[]        @relation("UserReviews")  
 }
 
 // Skill Model
@@ -26,13 +30,53 @@ model Skill {
   id            String    @id @default(uuid())
   title         String
   description   String?
-  category      String?   
-  pricePerHour  Float?   
+  category      String?
+  pricePerHour  Float?
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  userId        String   
+  userId        String
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
+
+  bookings      Booking[]
+  reviews       Review[]
+}
+
+// Booking Model
+model Booking {
+  id          String    @id @default(uuid())
+  bookingTime DateTime  
+  status      String    @default("pending") 
+  message     String?   
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  skillId     String    
+  skill       Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  studentId   String    
+  student     User      @relation("StudentBookings", fields: [studentId], references: [id], onDelete: Cascade)
+
+  providerId  String    
+  provider    User      @relation("ProviderBookings", fields: [providerId], references: [id], onDelete: Cascade)
+}
+
+// At the end of backend/prisma/schema.prisma, or after the Booking model
+
+model Review {
+  id        String   @id @default(uuid())
+  rating    Int     
+  comment   String?  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt 
+
+  skillId   String   
+  skill     Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  reviewerId String  
+  reviewer   User    @relation("UserReviews", fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  @@unique([skillId, reviewerId], name: "UniqueReviewPerUserPerSkill")
 }

@@ -25,7 +25,7 @@ const verifyToken = (req, res, next) => {
     token = req.query.token;
   }
 
-  // Log what's being received (for debugging)
+  // Log what's being received
 
   if (!token) {
     return res.status(403).send('A token is required for authentication');
