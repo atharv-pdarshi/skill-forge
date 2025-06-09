@@ -1,13 +1,31 @@
+/* frontend/styles/globals.css */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Define our custom dark theme variables */
+  --bg-primary-dark: #121212; /* Very dark main background */
+  --bg-secondary-dark: #1E1E1E; /* Background for cards, sections */
+  --text-primary-dark: #E0E0E0; /* Main text color */
+  --text-secondary-dark: #A0A0A0; /* Subdued text color */
+  --accent-color: #007bff; /* Bootstrap primary blue, or choose your own */
+  --accent-color-hover: #0056b3;
+  --accent-color-rgb: 0, 123, 255;
+  --border-color-dark: #333333;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Apply custom dark theme when Bootstrap's dark theme is active,
+   or apply it directly if we want to force it.
+   Forcing it gives more control but means Bootstrap components won't auto-switch
+   if you ever add a light/dark theme toggle without more JS.
+   Let's try forcing it for a more custom look. */
+
+body {
+  background-color: var(--bg-primary-dark);
+  color: var(--text-primary-dark);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; /* Modern system font stack */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
 }
 
 html,
@@ -16,27 +34,105 @@ body {
   overflow-x: hidden;
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
+/* Global Resets (keep or use your preferred one) */
 * {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
 }
-
+/* More specific resets if needed */
+h1, h2, h3, h4, h5, h6 {
+  margin-bottom: 0.75rem;
+  font-weight: 600; /* Slightly bolder headings */
+}
+p {
+  margin-bottom: 1rem;
+}
 a {
-  color: inherit;
+  color: var(--accent-color);
   text-decoration: none;
+  transition: color 0.2s ease-in-out;
+}
+a:hover {
+  color: var(--accent-color-hover);
+  text-decoration: underline;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+/* Overriding some Bootstrap Component Styles for our Custom Dark Theme */
+/* We are still using data-bs-theme="dark" in _app.js to help Bootstrap components adapt,
+   but we can be more specific here. */
+
+html[data-bs-theme="dark"] .card {
+  background-color: var(--bg-secondary-dark);
+  border: 1px solid var(--border-color-dark);
+  border-radius: 8px; /* Slightly more rounded cards */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Softer shadow for dark theme */
 }
+
+html[data-bs-theme="dark"] .card-header,
+html[data-bs-theme="dark"] .card-footer {
+  background-color: rgba(255, 255, 255, 0.03); /* Very subtle lighter header/footer for cards */
+  border-bottom: 1px solid var(--border-color-dark);
+}
+html[data-bs-theme="dark"] .card-title {
+  color: var(--text-primary-dark);
+}
+html[data-bs-theme="dark"] .card-subtitle,
+html[data-bs-theme="dark"] .card-text .text-muted {
+  color: var(--text-secondary-dark) !important; /* Ensure muted text uses our secondary color */
+}
+
+
+html[data-bs-theme="dark"] .btn-primary {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  /* Add custom hover/active states if needed */
+}
+html[data-bs-theme="dark"] .btn-primary:hover {
+  background-color: var(--accent-color-hover);
+  border-color: var(--accent-color-hover);
+}
+
+html[data-bs-theme="dark"] .form-control,
+html[data-bs-theme="dark"] .form-select {
+  background-color: var(--bg-secondary-dark); /* Or a slightly lighter input background */
+  color: var(--text-primary-dark);
+  border: 1px solid var(--border-color-dark);
+}
+html[data-bs-theme="dark"] .form-control:focus,
+html[data-bs-theme="dark"] .form-select:focus {
+  background-color: var(--bg-secondary-dark);
+  color: var(--text-primary-dark);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 0.25rem rgba(var(--accent-color-rgb), 0.25); /* Use accent for focus ring */
+}
+
+html[data-bs-theme="dark"] .modal-content {
+  background-color: var(--bg-secondary-dark);
+  border: 1px solid var(--border-color-dark);
+}
+html[data-bs-theme="dark"] .modal-header {
+  border-bottom: 1px solid var(--border-color-dark);
+}
+html[data-bs-theme="dark"] .modal-footer {
+  border-top: 1px solid var(--border-color-dark);
+}
+
+/* Custom Scrollbar (Optional - Webkit browsers like Chrome/Safari/Edge) */
+html[data-bs-theme="dark"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+html[data-bs-theme="dark"] ::-webkit-scrollbar-track {
+  background: var(--bg-primary-dark);
+}
+html[data-bs-theme="dark"] ::-webkit-scrollbar-thumb {
+  background-color: var(--border-color-dark);
+  border-radius: 10px;
+  border: 2px solid var(--bg-primary-dark); /* Creates padding around thumb */
+}
+html[data-bs-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-secondary-dark);
+}
+
+/* Add more specific overrides as you see fit */
