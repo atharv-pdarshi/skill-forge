@@ -1,4 +1,3 @@
-// frontend/components/ConfirmationModal.js
 import React from 'react';
 import { Modal, Button, Spinner } from 'react-bootstrap';
 
@@ -11,7 +10,7 @@ const ConfirmationModal = ({
   children,
   confirmButtonText = "Confirm",
   cancelButtonText = "Cancel",
-  confirmButtonVariant = "primary", // e.g., primary, danger, success
+  confirmButtonVariant = "primary",
   isConfirming = false, // To show a spinner on the confirm button
 }) => {
   return (

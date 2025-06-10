@@ -1,13 +1,12 @@
-// frontend/pages/dashboard/bookings/student.js
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../../services/api';
 import ProtectedRoute from '../../../components/ProtectedRoute';
-import { Container, ListGroup, Badge, Alert, Spinner, Button, Row, Col } from 'react-bootstrap'; // Ensure all are here
+import { Container, ListGroup, Badge, Alert, Spinner, Button, Row, Col } from 'react-bootstrap'; 
 import Head from 'next/head';
 import Link from 'next/link';
 import { useAuth } from '../../../context/AuthContext';
 import { toast } from 'react-toastify';
-import ConfirmationModal from '../../../components/ConfirmationModal'; // IMPORT THE NEW MODAL
+import ConfirmationModal from '../../../components/ConfirmationModal'; 
 
 const StudentBookingsPage = () => {
   const [bookings, setBookings] = useState([]);
@@ -138,7 +137,7 @@ const StudentBookingsPage = () => {
                         variant="outline-danger" 
                         size="sm" 
                         className="mt-md-2 d-block ms-md-auto"
-                        onClick={() => openCancelConfirmationModal(booking.id)} // MODIFIED: Call new function
+                        onClick={() => openCancelConfirmationModal(booking.id)} 
                         style={{borderColor: '#dc3545', color: '#dc3545'}} 
                     >
                         Cancel Booking
@@ -151,20 +150,18 @@ const StudentBookingsPage = () => {
         </ListGroup>
       </Container>
 
-      {/* Add the ConfirmationModal at the end of the JSX */}
+      {/* The ConfirmationModal at the end of the JSX */}
       <ConfirmationModal
         show={showConfirmModal}
         onHide={() => {
             setShowConfirmModal(false);
-            // It's good practice to reset action if modal is simply hidden without confirming
-            // setConfirmAction(null); // Not strictly needed with current setup if onConfirm handles reset
         }}
-        onConfirm={confirmModalProps.onConfirm} // This will be performCancellation(bookingId)
+        onConfirm={confirmModalProps.onConfirm} 
         title={confirmModalProps.title}
         body={confirmModalProps.body}
         confirmButtonText={confirmModalProps.confirmButtonText}
         confirmButtonVariant={confirmModalProps.confirmButtonVariant}
-        isConfirming={isSubmittingAction} // Pass loading state to the modal
+        isConfirming={isSubmittingAction} 
       />
     </ProtectedRoute>
   );

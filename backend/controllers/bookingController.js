@@ -1,4 +1,3 @@
-// backend/controllers/bookingController.js
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { sendEmail } = require('../utils/emailService');
@@ -28,7 +27,7 @@ const createBooking = async (req, res) => {
         return res.status(400).json({ message: 'You cannot book your own skill' });
     }
 
-    // ADDED: Check for existing active (pending or confirmed) booking by this student for this skill
+    // Check for existing active (pending or confirmed) booking by this student for this skill
     const existingActiveBooking = await prisma.booking.findFirst({
         where: {
             skillId: skillId,
@@ -42,7 +41,6 @@ const createBooking = async (req, res) => {
     if (existingActiveBooking) {
         return res.status(409).json({ message: 'You already have an active or pending booking request for this skill.' });
     }
-    // END OF ADDED CHECK
     
     const provider = skill.user;
     const providerId = provider.id;

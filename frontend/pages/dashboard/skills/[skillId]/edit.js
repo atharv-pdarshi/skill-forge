@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
+import React, { useState, useEffect, useCallback } from 'react'; 
 import { useRouter } from 'next/router';
 import api from '../../../../services/api';
 import { useAuth } from '../../../../context/AuthContext';

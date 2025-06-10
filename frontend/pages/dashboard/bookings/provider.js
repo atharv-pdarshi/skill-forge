@@ -1,4 +1,3 @@
-// frontend/pages/dashboard/bookings/provider.js
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../../services/api';
 import ProtectedRoute from '../../../components/ProtectedRoute';
@@ -17,7 +16,7 @@ const ProviderBookingsPage = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmModalProps, setConfirmModalProps] = useState({});
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
-  const [providerMessage, setProviderMessage] = useState(''); // ADDED: State for provider's message
+  const [providerMessage, setProviderMessage] = useState('');
 
   const fetchBookings = useCallback(async () => {
     if (!user) return;
@@ -51,23 +50,22 @@ const ProviderBookingsPage = () => {
     }
     setConfirmModalProps({
       title: `Confirm: ${actionLabel}`,
-      bodyText: `Are you sure you want to update this booking to "${newStatus.replace(/_/g, ' ')}"?`, // Changed to bodyText
+      bodyText: `Are you sure you want to update this booking to "${newStatus.replace(/_/g, ' ')}"?`, 
       confirmButtonText: `Yes, ${actionLabel}`,
       confirmButtonVariant: newStatus.includes('cancel') || newStatus.includes('decline') || newStatus.includes('cancelled') ? 'danger' : 'primary',
-      // MODIFIED: Pass providerMessage to onConfirm if the action is 'confirmed'
+      // Pass providerMessage to onConfirm if the action is 'confirmed'
       onConfirm: () => performStatusUpdate(bookingId, newStatus, (newStatus === 'confirmed' ? providerMessage : undefined)),
-      // ADDED: Field to indicate if message input should be shown
+      // Field to indicate if message input should be shown
       showProviderMessageInput: newStatus === 'confirmed' 
     });
     setShowConfirmModal(true);
   };
 
-  // MODIFIED: performStatusUpdate to accept and send the message
+  // performStatusUpdate to accept and send the message
   const performStatusUpdate = async (bookingId, newStatus, messageForStudent) => {
     setIsSubmittingAction(true);
     try {
         const payload = { status: newStatus };
-        // Add providerMessageOnConfirm to payload if it's a confirmation and message exists
         if (newStatus === 'confirmed' && messageForStudent !== undefined) {
           payload.providerMessageOnConfirm = messageForStudent;
         }
@@ -84,7 +82,6 @@ const ProviderBookingsPage = () => {
   };
 
   const getStatusBadgeVariant = (status) => {
-    // ... (no change)
     const s = status?.toLowerCase();
     if (s === 'pending') return 'warning';
     if (s === 'confirmed') return 'success';
@@ -94,7 +91,6 @@ const ProviderBookingsPage = () => {
   };
 
   const getActionableStatuses = (currentStatus) => {
-    // ... (no change)
     const actions = [];
     if (currentStatus === 'pending') {
         actions.push({ label: 'Confirm Booking', status: 'confirmed', variant: 'success'});
@@ -107,7 +103,6 @@ const ProviderBookingsPage = () => {
   };
 
   if (authLoading || loading) {
-    // ... (no change)
     return (
       <Container className="text-center mt-5 d-flex justify-content-center align-items-center" style={{minHeight: '70vh'}}>
         <div>
