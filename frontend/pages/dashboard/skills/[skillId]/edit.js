@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
 import { useRouter } from 'next/router';
 import api from '../../../../services/api';
 import { useAuth } from '../../../../context/AuthContext';
@@ -6,7 +6,7 @@ import ProtectedRoute from '../../../../components/ProtectedRoute';
 import { Container, Form, Button, Card, Alert, Spinner, Row, Col, Badge } from 'react-bootstrap';
 import Head from 'next/head';
 import Link from 'next/link';
-import { toast } from 'react-toastify'; 
+import { toast } from 'react-toastify';
 
 const EditSkillPage = () => {
   const router = useRouter();
@@ -23,47 +23,54 @@ const EditSkillPage = () => {
   const [loadingKeywords, setLoadingKeywords] = useState(false);
   const [keywordError, setKeywordError] = useState('');
 
-  const [error, setError] = useState(''); // For general form error display
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
 
-  useEffect(() => {
+  // Memoize fetchSkillData to prevent re-creation on every render if passed to useEffect
+  const fetchSkillData = useCallback(async () => {
     if (skillId && user) {
       setPageLoading(true);
-      api.get(`/skills/${skillId}`)
-        .then(response => {
-          const skill = response.data;
-          if (skill.userId !== user.id) {
-            setError("You are not authorized to edit this skill.");
-            toast.error("You are not authorized to edit this skill.");
-            setOriginalSkillData(null);
-            router.push('/dashboard/my-skills'); // Redirect if not authorized
-          } else {
-            setTitle(skill.title || '');
-            setDescription(skill.description || '');
-            setCategory(skill.category || '');
-            setPricePerHour(skill.pricePerHour !== null && skill.pricePerHour !== undefined ? String(skill.pricePerHour) : '');
-            setOriginalSkillData(skill);
-            setError('');
-          }
-        })
-        .catch(err => {
-          console.error("Failed to fetch skill for editing:", err);
-          const errMsg = err.response?.data?.message || err.message || "Failed to load skill data.";
-          setError(errMsg);
-          toast.error(errMsg);
+      try {
+        const response = await api.get(`/skills/${skillId}`);
+        const skill = response.data;
+        if (skill.userId !== user.id) {
+          setError("You are not authorized to edit this skill.");
+          toast.error("You are not authorized to edit this skill.");
           setOriginalSkillData(null);
-        })
-        .finally(() => setPageLoading(false));
+          router.push('/dashboard/my-skills');
+        } else {
+          setTitle(skill.title || '');
+          setDescription(skill.description || '');
+          setCategory(skill.category || '');
+          setPricePerHour(skill.pricePerHour !== null && skill.pricePerHour !== undefined ? String(skill.pricePerHour) : '');
+          setOriginalSkillData(skill);
+          setError('');
+        }
+      } catch (err) {
+        console.error("Failed to fetch skill for editing:", err);
+        const errMsg = err.response?.data?.message || err.message || "Failed to load skill data.";
+        setError(errMsg);
+        toast.error(errMsg);
+        setOriginalSkillData(null);
+      } finally {
+        setPageLoading(false);
+      }
     } else if (!authLoading && !user) {
         setPageLoading(false);
         toast.error("Please log in to edit skills.");
-        router.push(`/auth/login?redirect=${router.asPath}`);
     }
   }, [skillId, user, authLoading, router]);
 
 
-  const handleSuggestKeywords = async () => {
+  useEffect(() => {
+    if (!authLoading){ // Only fetch when auth state is resolved
+        fetchSkillData();
+    }
+  }, [authLoading, fetchSkillData]); // Add fetchSkillData (which is memoized)
+
+
+  const handleSuggestKeywords = useCallback(async () => { // Wrapped in useCallback
     if (!title && !description) {
       setKeywordError("Please enter a title or description to get suggestions.");
       toast.warn("Please enter a title or description to get suggestions.");
@@ -87,9 +94,9 @@ const EditSkillPage = () => {
       toast.error(errMsg);
     }
     setLoadingKeywords(false);
-  };
+  }, [title, description]); // Dependencies for handleSuggestKeywords
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => { // Wrapped in useCallback
     e.preventDefault();
     if (!title) {
       setError("Title is required.");
@@ -121,14 +128,14 @@ const EditSkillPage = () => {
       toast.error(errMsg);
     }
     setLoading(false);
-  };
+  }, [title, description, category, pricePerHour, originalSkillData, user, skillId, router]); // Dependencies for handleSubmit
 
   if (authLoading || pageLoading) {
     return (
       <Container className="text-center mt-5 d-flex justify-content-center align-items-center" style={{minHeight: '70vh'}}>
         <div>
             <Spinner animation="border" style={{ width: '3rem', height: '3rem', color: 'var(--accent-color)' }}/>
-            <p className="mt-3 lead" style={{color: 'var(--text-secondary-dark)'}}>Loading skill editor...</p>
+            <p className="mt-3 lead" style={{color: 'var(--text-secondary-dark)'}}>{`Loading skill editor...`}</p>
         </div>
       </Container>
     );
@@ -147,10 +154,10 @@ const EditSkillPage = () => {
     );
   }
   
-  if (!originalSkillData && !pageLoading && !authLoading) { // Ensure not to show if still loading auth
+  if (!originalSkillData && !pageLoading && !authLoading) {
       return (
         <Container className="mt-5">
-            <Alert variant="info">Skill data could not be loaded or you are not authorized.</Alert>
+            <Alert variant="info">{`Skill data could not be loaded or you are not authorized.`}</Alert>
             <div className="text-center">
                 <Link href="/dashboard/my-skills" passHref>
                     <Button variant="secondary">Back to My Skills</Button>
@@ -163,20 +170,19 @@ const EditSkillPage = () => {
   return (
     <ProtectedRoute>
       <Head>
-        <title>Edit Skill: {originalSkillData?.title || 'Loading...'} | SkillForge</title>
+        <title>{`Edit Skill: ${originalSkillData?.title || 'Loading...'} | SkillForge`}</title>
         <meta name="description" content={`Edit the details for your skill: ${originalSkillData?.title}`} />
       </Head>
       <Container className="mt-4 mb-5" style={{ maxWidth: '800px' }}>
         <div className="mb-4 pb-2 text-center" style={{borderBottom: `1px solid var(--border-color-dark)`}}>
             <h1 className="display-6 fw-bold">Edit Your Skill</h1>
-            <p style={{color: 'var(--text-secondary-dark)'}}>Update the details for "{originalSkillData?.title || 'this skill'}" below.</p>
+            <p style={{color: 'var(--text-secondary-dark)'}}>{`Update the details for "${originalSkillData?.title || 'this skill'}" below.`}</p>
         </div>
 
         <Card className="p-4 p-md-5 shadow-sm" style={{ backgroundColor: 'var(--bg-secondary-dark)', borderColor: 'var(--border-color-dark)' }}>
           <Card.Body>
             {error && !loading && <Alert variant="danger" className="py-2">{error}</Alert>}
             <Form onSubmit={handleSubmit}>
-              {/* Form Groups are identical to new.js */}
               <Form.Group className="mb-3" controlId="skillTitle">
                 <Form.Label className="fw-medium" style={{color: 'var(--text-primary-dark)'}}>Skill Title <span style={{color: 'var(--accent-color)'}}>*</span></Form.Label>
                 <Form.Control
@@ -228,11 +234,10 @@ const EditSkillPage = () => {
               
               <hr className="my-4" style={{borderColor: 'var(--border-color-dark)'}}/>
 
-              {/* AI Keyword Suggestion Section */}
               <div className="mb-4">
                 <h5 className="fw-medium" style={{color: 'var(--text-primary-dark)'}}>AI Keyword Suggestions</h5>
                 <p style={{color: 'var(--text-secondary-dark)', fontSize: '0.9rem'}}>
-                  Modify title/description above, then click to get updated keyword suggestions.
+                  {`Modify title/description above, then click to get updated keyword suggestions.`}
                 </p>
                 <Button 
                   variant="outline-info" 
@@ -246,7 +251,7 @@ const EditSkillPage = () => {
                 {keywordError && <Alert variant="warning" className="mt-2 py-1 px-2 text-small">{keywordError}</Alert>}
                 {suggestedKeywords.length > 0 && (
                   <div className="mt-3">
-                    <p className="mb-1" style={{color: 'var(--text-secondary-dark)'}}>Suggested Keywords:</p>
+                    <p className="mb-1" style={{color: 'var(--text-secondary-dark)'}}>{`Suggested Keywords:`}</p>
                     <div>
                       {suggestedKeywords.map((keyword, index) => (
                         <Badge pill key={index} className="me-1 mb-1 p-2" style={{backgroundColor: 'var(--border-color-dark)', color: 'var(--text-primary-dark)'}}>

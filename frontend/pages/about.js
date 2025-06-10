@@ -1,6 +1,7 @@
 import Head from 'next/head';
 import Link from 'next/link'; 
-import { Container, Row, Col, Card, Button } from 'react-bootstrap'; 
+import { Container, Row, Col, Card, Button } from 'react-bootstrap';
+
 const AboutPage = () => {
   return (
     <>
@@ -14,7 +15,7 @@ const AboutPage = () => {
         <Container>
           <h1 className="display-4 fw-bold" style={{color: 'var(--text-primary-dark)'}}>About <span style={{color: 'var(--accent-color)'}}>SkillForge</span></h1>
           <p className="lead col-lg-8 mx-auto" style={{color: 'var(--text-secondary-dark)'}}>
-            Connecting passion with opportunity. Discover who we are, our mission, and the community we're building together.
+            {`Connecting passion with opportunity. Discover who we are, our mission, and the community we're building together.`}
           </p>
         </Container>
       </div>
@@ -26,18 +27,18 @@ const AboutPage = () => {
               <Card.Body>
                 <h2 className="fw-semibold mb-3" style={{color: 'var(--text-primary-dark)'}}>Our Mission</h2>
                 <p style={{color: 'var(--text-secondary-dark)', lineHeight: '1.75'}}>
-                  At SkillForge, our mission is to empower individuals by creating an accessible and dynamic marketplace for skills.
+                  {`At SkillForge, our mission is to empower individuals by creating an accessible and dynamic marketplace for skills.
                   We believe that everyone possesses valuable knowledge worth sharing, and everyone has the potential to learn something new.
                   We strive to break down barriers to education and expertise, fostering a global community where learning and teaching
-                  are intuitive, engaging, and rewarding.
+                  are intuitive, engaging, and rewarding.`}
                 </p>
                 <hr className="my-4" style={{borderColor: 'var(--border-color-dark)'}}/>
                 <h2 className="fw-semibold mb-3" style={{color: 'var(--text-primary-dark)'}}>Our Vision</h2>
                 <p style={{color: 'var(--text-secondary-dark)', lineHeight: '1.75'}}>
-                  We envision a world where skills are the currency of growth and connection. SkillForge aims to be the leading platform
+                  {`We envision a world where skills are the currency of growth and connection. SkillForge aims to be the leading platform
                   where individuals can seamlessly transform their passions into professions and their curiosities into capabilities.
                   We are building more than just a platform; we are forging a future where continuous learning and skill-sharing
-                  are integral parts of everyday life, enriching individuals and communities alike.
+                  are integral parts of everyday life, enriching individuals and communities alike.`}
                 </p>
               </Card.Body>
             </Card>
@@ -86,4 +87,4 @@ const AboutPage = () => {
   );
 };
 
-export default AboutPage;
+export default AboutPage; 

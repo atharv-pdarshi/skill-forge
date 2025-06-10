@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import api from '../../services/api';
 import {
@@ -24,22 +24,22 @@ const SkillDetailPage = () => {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingTime, setBookingTime] = useState('');
   const [bookingMessage, setBookingMessage] = useState('');
-  const [bookingError, setBookingError] = useState(''); // For modal-specific errors
+  const [bookingError, setBookingError] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
 
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
-  const [reviewError, setReviewError] = useState(''); // For modal-specific errors
+  const [reviewError, setReviewError] = useState('');
   const [reviewLoading, setReviewLoading] = useState(false);
 
-  const fetchSkillDetails = async () => {
+  const fetchSkillDetails = useCallback(async () => {
     if (!skillId) return;
     setLoadingSkill(true);
+    setError('');
     try {
       const response = await api.get(`/skills/${skillId}`);
       setSkill(response.data);
-      setError('');
     } catch (err) {
       console.error("Failed to fetch skill details:", err);
       const errMsg = err.response?.data?.message || err.message || 'Failed to load skill details.';
@@ -47,9 +47,9 @@ const SkillDetailPage = () => {
       setSkill(null);
     }
     setLoadingSkill(false);
-  };
+  }, [skillId]);
 
-  const fetchSkillReviews = async () => {
+  const fetchSkillReviews = useCallback(async () => {
     if (!skillId) return;
     setLoadingReviews(true);
     try {
@@ -61,14 +61,14 @@ const SkillDetailPage = () => {
       setReviewsData({ reviews: [], averageRating: 0, totalReviews: 0 });
     }
     setLoadingReviews(false);
-  };
+  }, [skillId]);
 
   useEffect(() => {
     if (skillId) {
       fetchSkillDetails();
       fetchSkillReviews();
     }
-  }, [skillId]);
+  }, [skillId, fetchSkillDetails, fetchSkillReviews]);
 
   const handleShowBookingModal = () => setShowBookingModal(true);
   const handleCloseBookingModal = () => {
@@ -154,7 +154,7 @@ const SkillDetailPage = () => {
       <Container className="text-center mt-5 d-flex justify-content-center align-items-center" style={{minHeight: '70vh'}}>
         <div>
             <Spinner animation="border" style={{ width: '3rem', height: '3rem', color: 'var(--accent-color)' }}/>
-            <p className="mt-3 lead" style={{color: 'var(--text-secondary-dark)'}}>Loading skill details...</p>
+            <p className="mt-3 lead" style={{color: 'var(--text-secondary-dark)'}}>{`Loading skill details...`}</p>
         </div>
       </Container>
     );
@@ -167,7 +167,7 @@ const SkillDetailPage = () => {
   if (!skill && !loadingSkill && !authLoading) {
     return (
         <Container className="mt-5">
-            <Alert variant="info" className="text-center py-4">Skill not found or is unavailable.</Alert>
+            <Alert variant="info" className="text-center py-4">{`Skill not found or is unavailable.`}</Alert>
             <div className="text-center">
                 <Link href="/skills" passHref>
                     <Button variant="secondary">Back to All Skills</Button>
@@ -177,7 +177,6 @@ const SkillDetailPage = () => {
     );
   }
 
-
   const isProvider = isAuthenticated && user && skill && skill.user && user.id === skill.user.id;
   const canBook = isAuthenticated && !isProvider;
   const hasUserReviewed = isAuthenticated && user && reviewsData.reviews.some(review => review.reviewer?.id === user.id);
@@ -186,7 +185,7 @@ const SkillDetailPage = () => {
   return (
     <>
       <Head>
-        <title>{skill?.title || 'Skill Details'} | SkillForge</title>
+        <title>{`${skill?.title || 'Skill Details'} | SkillForge`}</title>
         <meta name="description" content={skill?.description?.substring(0, 160) || `Details about the skill: ${skill?.title}`} />
       </Head>
       <Container className="my-4 my-lg-5">
@@ -219,7 +218,7 @@ const SkillDetailPage = () => {
                             <Card.Text className="fs-5 mb-3">
                             <strong>Price:</strong> {skill?.pricePerHour ? 
                                 <span className="fw-bold" style={{color: 'var(--accent-color)'}}>${skill.pricePerHour.toFixed(2)}<span style={{color: 'var(--text-secondary-dark)', fontSize: '0.9rem'}}>/hr</span></span> 
-                                : <span style={{color: 'var(--text-secondary-dark)'}}>Not specified</span>}
+                                : <span style={{color: 'var(--text-secondary-dark)'}}>{`Not specified`}</span>}
                             </Card.Text>
                             
                             <h5 className="fw-semibold mt-4 mb-2">Skill Description</h5>
@@ -256,10 +255,10 @@ const SkillDetailPage = () => {
                         </div>
 
                         {isAuthenticated && isProvider && (
-                            <Alert variant="dark" className="mt-3 py-2 px-3 text-center" style={{backgroundColor: 'var(--bg-primary-dark)', borderColor: 'var(--border-color-dark)'}}>This is one of your skills.</Alert>
+                            <Alert variant="dark" className="mt-3 py-2 px-3 text-center" style={{backgroundColor: 'var(--bg-primary-dark)', borderColor: 'var(--border-color-dark)'}}>{`This is one of your skills.`}</Alert>
                         )}
                         {isAuthenticated && !isProvider && hasUserReviewed && (
-                            <p className="mt-3" style={{color: 'var(--accent-color)'}}><small>✓ You've already reviewed this skill. Thank you!</small></p>
+                            <p className="mt-3" style={{color: 'var(--accent-color)'}}><small>{`✓ You've already reviewed this skill. Thank you!`}</small></p>
                         )}
                     </Card.Body>
                 </Card>
@@ -270,13 +269,13 @@ const SkillDetailPage = () => {
                     <h3 className="fw-bold mb-1">Community Reviews</h3>
                     <p className="mb-3" style={{color: 'var(--text-secondary-dark)'}}>
                         {reviewsData.totalReviews > 0 
-                            ? <>Average Rating: <strong style={{color: 'var(--accent-color)', fontSize: '1.2rem'}}>{reviewsData.averageRating.toFixed(1)} ★</strong> ({reviewsData.totalReviews} reviews)</>
-                            : "No reviews yet."
+                            ? <>{`Average Rating:`} <strong style={{color: 'var(--accent-color)', fontSize: '1.2rem'}}>{reviewsData.averageRating.toFixed(1)} ★</strong> ({reviewsData.totalReviews} {`reviews`})</>
+                            : `No reviews yet.`
                         }
                     </p>
                     
                     {loadingReviews ? (
-                        <div className="text-center py-4"><Spinner animation="border" size="sm" style={{color: 'var(--accent-color)'}}/> <span style={{color: 'var(--text-secondary-dark)'}}>Loading reviews...</span></div>
+                        <div className="text-center py-4"><Spinner animation="border" size="sm" style={{color: 'var(--accent-color)'}}/> <span style={{color: 'var(--text-secondary-dark)'}}>{`Loading reviews...`}</span></div>
                     ) : reviewsData.reviews.length > 0 ? (
                         <ListGroup variant="flush" style={{maxHeight: '60vh', overflowY: 'auto'}}>
                             {reviewsData.reviews.map(review => (
@@ -286,12 +285,12 @@ const SkillDetailPage = () => {
                                     <small className="text-muted">{new Date(review.createdAt).toLocaleDateString()}</small>
                                 </div>
                                 {review.reviewer && <p className="mb-1 mt-1 fw-medium" style={{color: 'var(--text-primary-dark)', fontSize: '0.9rem'}}>By: {review.reviewer.name || 'Anonymous'}</p>}
-                                {review.comment && <p className="mb-0 fst-italic" style={{color: 'var(--text-secondary-dark)', fontSize: '0.95rem'}}>"{review.comment}"</p>}
+                                {review.comment && <p className="mb-0 fst-italic" style={{color: 'var(--text-secondary-dark)', fontSize: '0.95rem'}}>{`"${review.comment}"`}</p>}
                             </ListGroup.Item>
                             ))}
                         </ListGroup>
                     ) : (
-                        <p style={{color: 'var(--text-secondary-dark)'}}>{canReview ? "Be the first to leave a review!" : "No reviews for this skill yet."}</p>
+                        <p style={{color: 'var(--text-secondary-dark)'}}>{canReview ? `Be the first to leave a review!` : `No reviews for this skill yet.`}</p>
                     )}
                 </div>
             </Col>
@@ -300,7 +299,7 @@ const SkillDetailPage = () => {
         {/* Booking Modal */}
         <Modal show={showBookingModal} onHide={handleCloseBookingModal} centered data-bs-theme="dark">
           <Modal.Header closeButton style={{borderColor: 'var(--border-color-dark)'}}>
-            <Modal.Title style={{color: 'var(--text-primary-dark)'}}>Book Skill: {skill?.title}</Modal.Title>
+            <Modal.Title style={{color: 'var(--text-primary-dark)'}}>{`Book Skill: ${skill?.title}`}</Modal.Title>
           </Modal.Header>
           <Modal.Body style={{backgroundColor: 'var(--bg-secondary-dark)'}}>
             {bookingError && <Alert variant="danger">{bookingError}</Alert>}
@@ -337,7 +336,7 @@ const SkillDetailPage = () => {
         {/* Review Modal */}
         <Modal show={showReviewModal} onHide={handleCloseReviewModal} centered data-bs-theme="dark">
           <Modal.Header closeButton style={{borderColor: 'var(--border-color-dark)'}}>
-            <Modal.Title style={{color: 'var(--text-primary-dark)'}}>Leave a Review for: {skill?.title}</Modal.Title>
+            <Modal.Title style={{color: 'var(--text-primary-dark)'}}>{`Leave a Review for: ${skill?.title}`}</Modal.Title>
           </Modal.Header>
           <Modal.Body style={{backgroundColor: 'var(--bg-secondary-dark)'}}>
             {reviewError && <Alert variant="danger">{reviewError}</Alert>}

@@ -1,19 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../../services/api';
 import ProtectedRoute from '../../../components/ProtectedRoute';
-import { Container, Card, ListGroup, Badge, Alert, Spinner, Button, Row, Col } from 'react-bootstrap'; 
+import { Container, Card, ListGroup, Badge, Alert, Spinner, Button, Row, Col } from 'react-bootstrap';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useAuth } from '../../../context/AuthContext';
-import { toast } from 'react-toastify'; 
+import { toast } from 'react-toastify';
 
 const StudentBookingsPage = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth(); // Get authLoading from context
 
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => { // Wrapped in useCallback
+    if (!user) return; // Don't fetch if no user
     setLoading(true);
     setError('');
     try {
@@ -26,22 +27,23 @@ const StudentBookingsPage = () => {
       toast.error(errMsg);
     }
     setLoading(false);
-  };
+  }, [user]); // Depends on user
   
   useEffect(() => {
-    if(user) { // Only fetch if user is loaded
+    if (user) { // If user object is available
         fetchBookings();
-    } else if (!useAuth().loading) { // If auth is done loading and no user
-        setLoading(false); // Stop loading indicator
+    } else if (!authLoading) { // If auth check is done and there's no user
+        setLoading(false); // Stop local loading indicator
+        setBookings([]); // Clear any existing bookings
     }
-  }, [user]); // Depend on user from AuthContext
+  }, [user, authLoading, fetchBookings]); // Added authLoading and fetchBookings
 
   const handleCancelBooking = async (bookingId) => {
     if (!window.confirm("Are you sure you want to cancel this booking? This action cannot be undone.")) return;
     try {
         await api.patch(`/bookings/${bookingId}/status`, { status: 'cancelled_by_student' });
         toast.success('Booking cancelled successfully.');
-        fetchBookings();
+        fetchBookings(); // Refresh the list
     } catch (err) {
         const errorMessage = `Failed to cancel booking: ${err.response?.data?.message || err.message}`;
         toast.error(errorMessage);
@@ -58,7 +60,7 @@ const StudentBookingsPage = () => {
     return 'secondary';
   };
 
-  if (loading) {
+  if (authLoading || loading) { // Check both authLoading and local loading
     return (
       <Container className="text-center mt-5 d-flex justify-content-center align-items-center" style={{minHeight: '70vh'}}>
         <div>
@@ -78,14 +80,14 @@ const StudentBookingsPage = () => {
       <Container className="mt-4 mb-5">
         <div className="mb-4 pb-2" style={{borderBottom: `1px solid var(--border-color-dark)`}}>
           <h1 className="display-6 fw-bold">My Booked Sessions</h1>
-          <p style={{color: 'var(--text-secondary-dark)'}}>Here are all the skill sessions you've booked as a student.</p>
+          <p style={{color: 'var(--text-secondary-dark)'}}>{`Here are all the skill sessions you've booked as a student.`}</p>
         </div>
 
-        {error && bookings.length === 0 && <Alert variant="danger" className="text-center py-3">{error}</Alert>} {/* Show error only if no bookings to display */}
+        {error && bookings.length === 0 && <Alert variant="danger" className="text-center py-3">{error}</Alert>}
         {!loading && bookings.length === 0 && !error && (
           <Alert variant="secondary" className="text-center py-4" style={{backgroundColor: 'var(--bg-secondary-dark)', borderColor: 'var(--border-color-dark)'}}>
             <h4>No Bookings Yet!</h4>
-            <p style={{color: 'var(--text-secondary-dark)'}}>You haven't booked any skills. Time to learn something new?</p>
+            <p style={{color: 'var(--text-secondary-dark)'}}>{`You haven't booked any skills. Time to learn something new?`}</p>
             <Link href="/skills" passHref>
               <Button variant="primary" style={{backgroundColor: 'var(--accent-color)', borderColor: 'var(--accent-color)'}}>Explore Skills Now</Button>
             </Link>
@@ -104,11 +106,11 @@ const StudentBookingsPage = () => {
                     Scheduled for: <span className="fw-medium" style={{color: 'var(--text-primary-dark)'}}>{new Date(booking.bookingTime).toLocaleString()}</span>
                   </p>
                   {booking.message && 
-                    <p className="mb-1 mt-2 fst-italic small" style={{color: 'var(--text-secondary-dark)'}}><strong style={{color: 'var(--text-primary-dark)'}}>Your message:</strong> "{booking.message}"</p>
+                    <p className="mb-1 mt-2 fst-italic small" style={{color: 'var(--text-secondary-dark)'}}><strong style={{color: 'var(--text-primary-dark)'}}>{`Your message:`}</strong> {`"${booking.message}"`}</p>
                   }
                 </Col>
                 <Col md={4} className="text-md-end mt-2 mt-md-0">
-                  <Badge bg={getStatusBadgeVariant(booking.status)} className="p-2 px-3 mb-2 mb-md-0 d-block" style={{fontSize: '0.9rem'}}> {/* d-block for badge full width */}
+                  <Badge bg={getStatusBadgeVariant(booking.status)} className="p-2 px-3 mb-2 mb-md-0 d-block" style={{fontSize: '0.9rem'}}>
                     {booking.status?.replace(/_/g, ' ').toUpperCase()}
                   </Badge>
                   {(booking.status === 'pending' || booking.status === 'confirmed') && (
