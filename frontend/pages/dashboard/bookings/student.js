@@ -1,20 +1,27 @@
+// frontend/pages/dashboard/bookings/student.js
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../../services/api';
 import ProtectedRoute from '../../../components/ProtectedRoute';
-import { Container, Card, ListGroup, Badge, Alert, Spinner, Button, Row, Col } from 'react-bootstrap';
+import { Container, ListGroup, Badge, Alert, Spinner, Button, Row, Col } from 'react-bootstrap'; // Ensure all are here
 import Head from 'next/head';
 import Link from 'next/link';
 import { useAuth } from '../../../context/AuthContext';
 import { toast } from 'react-toastify';
+import ConfirmationModal from '../../../components/ConfirmationModal'; // IMPORT THE NEW MODAL
 
 const StudentBookingsPage = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const { user, loading: authLoading } = useAuth(); // Get authLoading from context
+  const { user, loading: authLoading } = useAuth();
 
-  const fetchBookings = useCallback(async () => { // Wrapped in useCallback
-    if (!user) return; // Don't fetch if no user
+  // State for Confirmation Modal
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmModalProps, setConfirmModalProps] = useState({});
+  const [isSubmittingAction, setIsSubmittingAction] = useState(false); // For spinner on modal confirm button
+
+  const fetchBookings = useCallback(async () => {
+    if (!user) return;
     setLoading(true);
     setError('');
     try {
@@ -27,19 +34,30 @@ const StudentBookingsPage = () => {
       toast.error(errMsg);
     }
     setLoading(false);
-  }, [user]); // Depends on user
+  }, [user]);
   
   useEffect(() => {
-    if (user) { // If user object is available
+    if (user) {
         fetchBookings();
-    } else if (!authLoading) { // If auth check is done and there's no user
-        setLoading(false); // Stop local loading indicator
-        setBookings([]); // Clear any existing bookings
+    } else if (!authLoading) {
+        setLoading(false);
+        setBookings([]);
     }
-  }, [user, authLoading, fetchBookings]); // Added authLoading and fetchBookings
+  }, [user, authLoading, fetchBookings]);
 
-  const handleCancelBooking = async (bookingId) => {
-    if (!window.confirm("Are you sure you want to cancel this booking? This action cannot be undone.")) return;
+  const openCancelConfirmationModal = (bookingId) => {
+    setConfirmModalProps({
+      title: "Confirm Cancellation",
+      body: "Are you sure you want to cancel this booking? This action cannot be undone.",
+      confirmButtonText: "Yes, Cancel Booking",
+      confirmButtonVariant: "danger",
+      onConfirm: () => performCancellation(bookingId), // Pass the actual action
+    });
+    setShowConfirmModal(true);
+  };
+
+  const performCancellation = async (bookingId) => {
+    setIsSubmittingAction(true); // Show spinner on modal confirm
     try {
         await api.patch(`/bookings/${bookingId}/status`, { status: 'cancelled_by_student' });
         toast.success('Booking cancelled successfully.');
@@ -49,6 +67,8 @@ const StudentBookingsPage = () => {
         toast.error(errorMessage);
         console.error("Cancel booking error:", err.response?.data || err.message);
     }
+    setShowConfirmModal(false); // Close modal regardless of success/failure of action
+    setIsSubmittingAction(false); // Hide spinner
   };
 
   const getStatusBadgeVariant = (status) => {
@@ -60,7 +80,7 @@ const StudentBookingsPage = () => {
     return 'secondary';
   };
 
-  if (authLoading || loading) { // Check both authLoading and local loading
+  if (authLoading || loading) {
     return (
       <Container className="text-center mt-5 d-flex justify-content-center align-items-center" style={{minHeight: '70vh'}}>
         <div>
@@ -118,7 +138,7 @@ const StudentBookingsPage = () => {
                         variant="outline-danger" 
                         size="sm" 
                         className="mt-md-2 d-block ms-md-auto"
-                        onClick={() => handleCancelBooking(booking.id)}
+                        onClick={() => openCancelConfirmationModal(booking.id)} // MODIFIED: Call new function
                         style={{borderColor: '#dc3545', color: '#dc3545'}} 
                     >
                         Cancel Booking
@@ -130,6 +150,22 @@ const StudentBookingsPage = () => {
           ))}
         </ListGroup>
       </Container>
+
+      {/* Add the ConfirmationModal at the end of the JSX */}
+      <ConfirmationModal
+        show={showConfirmModal}
+        onHide={() => {
+            setShowConfirmModal(false);
+            // It's good practice to reset action if modal is simply hidden without confirming
+            // setConfirmAction(null); // Not strictly needed with current setup if onConfirm handles reset
+        }}
+        onConfirm={confirmModalProps.onConfirm} // This will be performCancellation(bookingId)
+        title={confirmModalProps.title}
+        body={confirmModalProps.body}
+        confirmButtonText={confirmModalProps.confirmButtonText}
+        confirmButtonVariant={confirmModalProps.confirmButtonVariant}
+        isConfirming={isSubmittingAction} // Pass loading state to the modal
+      />
     </ProtectedRoute>
   );
 };

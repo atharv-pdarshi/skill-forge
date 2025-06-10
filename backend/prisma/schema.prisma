@@ -19,10 +19,10 @@ model User {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  skills          Skill[]         
-  bookingsMade    Booking[]       @relation("StudentBookings") 
-  bookingsReceived Booking[]      @relation("ProviderBookings") 
-  reviewsWritten Review[]        @relation("UserReviews")  
+  skills           Skill[]         
+  bookingsMade     Booking[]       @relation("StudentBookings") 
+  bookingsReceived Booking[]       @relation("ProviderBookings") 
+  reviewsWritten   Review[]        @relation("UserReviews")  
 }
 
 // Skill Model
@@ -45,38 +45,39 @@ model Skill {
 
 // Booking Model
 model Booking {
-  id          String    @id @default(uuid())
-  bookingTime DateTime  
-  status      String    @default("pending") 
-  message     String?   
+  id                       String    @id @default(uuid())
+  bookingTime              DateTime  
+  status                   String    @default("pending") 
+  message                  String?   // Student's initial message when booking
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  providerMessageOnConfirm String?   // ADD THIS LINE: Provider's message to student upon confirmation
 
-  skillId     String    
-  skill       Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
-  studentId   String    
-  student     User      @relation("StudentBookings", fields: [studentId], references: [id], onDelete: Cascade)
+  skillId                  String    
+  skill                    Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
-  providerId  String    
-  provider    User      @relation("ProviderBookings", fields: [providerId], references: [id], onDelete: Cascade)
+  studentId                String    
+  student                  User      @relation("StudentBookings", fields: [studentId], references: [id], onDelete: Cascade)
+
+  providerId               String    
+  provider                 User      @relation("ProviderBookings", fields: [providerId], references: [id], onDelete: Cascade)
 }
 
-// At the end of backend/prisma/schema.prisma, or after the Booking model
-
+// Review Model
 model Review {
-  id        String   @id @default(uuid())
-  rating    Int     
-  comment   String?  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt 
+  id         String   @id @default(uuid())
+  rating     Int     
+  comment    String?  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt 
 
-  skillId   String   
-  skill     Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  skillId    String   
+  skill      Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
   reviewerId String  
-  reviewer   User    @relation("UserReviews", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewer   User     @relation("UserReviews", fields: [reviewerId], references: [id], onDelete: Cascade)
 
   @@unique([skillId, reviewerId], name: "UniqueReviewPerUserPerSkill")
 }

@@ -1,3 +1,4 @@
+// backend/controllers/bookingController.js
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { sendEmail } = require('../utils/emailService');
@@ -12,11 +13,10 @@ const createBooking = async (req, res) => {
       return res.status(400).json({ message: 'Skill ID and booking time are required' });
     }
 
-    // Find the skill to ensure it exists and to get the provider (user who owns the skill)
     const skill = await prisma.skill.findUnique({
       where: { id: skillId },
       include: { 
-        user: true
+        user: true // To get provider details
       } 
     });
 
@@ -27,6 +27,22 @@ const createBooking = async (req, res) => {
     if (skill.userId === studentId) {
         return res.status(400).json({ message: 'You cannot book your own skill' });
     }
+
+    // ADDED: Check for existing active (pending or confirmed) booking by this student for this skill
+    const existingActiveBooking = await prisma.booking.findFirst({
+        where: {
+            skillId: skillId,
+            studentId: studentId,
+            status: {
+                in: ['pending', 'confirmed'] // Check for these statuses
+            }
+        }
+    });
+
+    if (existingActiveBooking) {
+        return res.status(409).json({ message: 'You already have an active or pending booking request for this skill.' });
+    }
+    // END OF ADDED CHECK
     
     const provider = skill.user;
     const providerId = provider.id;
@@ -37,20 +53,21 @@ const createBooking = async (req, res) => {
         message,
         skillId,
         studentId,
-        providerId,
-        status: 'pending', // Initial status is kept as pending by default
+        providerId, // This is skill.userId
+        status: 'pending', // Default status from schema
+        // providerMessageOnConfirm will be null by default
       },
-      include: { // Including related data in the response for the API client
+      include: {
         skill: { select: { id: true, title: true } },
-        student: { select: { id: true, name: true, email: true } }, // Student who made the booking
-        provider: { select: { id: true, name: true, email: true } }, // Provider of the skill
+        student: { select: { id: true, name: true, email: true } },
+        provider: { select: { id: true, name: true, email: true } }, // This is essentially skill.user
       }
     });
 
     // Sending notification email to the skill provider
     if (provider && provider.email) {
       const subject = `New Booking Request for your skill: ${skill.title}`;
-      const studentInfo = newBooking.student;
+      const studentInfo = newBooking.student; // studentInfo from the created booking
       const htmlContent = `
         <p>Hi ${provider.name || 'Provider'},</p>
         <p>${studentInfo.name || 'A student'} (${studentInfo.email}) has requested to book your skill "${skill.title}"
@@ -80,7 +97,7 @@ const getStudentBookings = async (req, res) => {
       where: { studentId: studentId },
       include: {
         skill: { select: { id: true, title: true, category: true } },
-        provider: { select: { id: true, name: true } } // Provider of the skill
+        provider: { select: { id: true, name: true } } 
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -99,7 +116,7 @@ const getProviderBookings = async (req, res) => {
       where: { providerId: providerId }, 
       include: {
         skill: { select: { id: true, title: true } },
-        student: { select: { id: true, name: true, email: true } } // Student who made the booking
+        student: { select: { id: true, name: true, email: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -114,7 +131,7 @@ const getProviderBookings = async (req, res) => {
 const updateBookingStatus = async (req, res) => {
     try {
         const { bookingId } = req.params;
-        const { status } = req.body; 
+        const { status, providerMessageOnConfirm } = req.body; 
         const currentUserId = req.user.user_id;
 
         if (!status) {
@@ -122,15 +139,15 @@ const updateBookingStatus = async (req, res) => {
         }
 
         const validStatuses = ["pending", "confirmed", "completed", "cancelled_by_student", "cancelled_by_provider"];
-        if (!validStatuses.includes(status)) {
+        if (!validStatuses.includes(status.toLowerCase())) {
             return res.status(400).json({ message: "Invalid status value" });
         }
 
         const booking = await prisma.booking.findUnique({
             where: { id: bookingId },
             include: { 
-                skill: { include: { user: true } }, // To get provider (skill.user)
-                student: true // To get student
+                skill: { include: { user: true } }, 
+                student: true 
             }
         });
 
@@ -139,15 +156,15 @@ const updateBookingStatus = async (req, res) => {
         }
 
         let canUpdate = false;
-        const provider = booking.skill.user; // The provider User object
-        const student = booking.student;     // The student User object
+        const provider = booking.skill.user; 
+        const student = booking.student;     
 
-        if (provider.id === currentUserId) { // User is the provider
-            if (["confirmed", "completed", "cancelled_by_provider"].includes(status)) {
+        if (provider.id === currentUserId) {
+            if (["confirmed", "completed", "cancelled_by_provider"].includes(status.toLowerCase())) {
                 canUpdate = true;
             }
-        } else if (student.id === currentUserId) { // User is the student
-            if (status === "cancelled_by_student" && (booking.status === "pending" || booking.status === "confirmed")) {
+        } else if (student.id === currentUserId) {
+            if (status.toLowerCase() === "cancelled_by_student" && (booking.status === "pending" || booking.status === "confirmed")) {
                 canUpdate = true;
             }
         }
@@ -156,9 +173,14 @@ const updateBookingStatus = async (req, res) => {
             return res.status(403).json({ message: "Forbidden: You do not have permission to update this booking to the specified status." });
         }
 
+        const updateData = { status: status.toLowerCase() };
+        if (status.toLowerCase() === 'confirmed' && providerMessageOnConfirm !== undefined && provider.id === currentUserId) {
+            updateData.providerMessageOnConfirm = providerMessageOnConfirm;
+        }
+
         const updatedBooking = await prisma.booking.update({
             where: { id: bookingId },
-            data: { status: status },
+            data: updateData,
             include: {
                 skill: { select: { id: true, title: true } },
                 student: { select: { id: true, name: true, email: true } },
@@ -166,23 +188,26 @@ const updateBookingStatus = async (req, res) => {
             }
         });
 
-        // For sending notification email based on status change
         let emailRecipient = null;
         let emailSubject = '';
         let emailHtmlContent = '';
 
-        // For ensuring provider and student objects (and their emails) are available
         if (provider && student) {
-            if (status === 'confirmed' && student.email) {
+            if (status.toLowerCase() === 'confirmed' && student.email) {
                 emailRecipient = student.email;
-                emailSubject = `Your booking for "${booking.skill.title}" has been confirmed!`;
+                emailSubject = `Your booking for "${updatedBooking.skill.title}" has been confirmed!`;
                 emailHtmlContent = `
                     <p>Hi ${student.name || 'Student'},</p>
-                    <p>Your booking for the skill "${booking.skill.title}" with ${provider.name || 'the provider'}
-                       scheduled for ${new Date(booking.bookingTime).toLocaleString()} has been confirmed.</p>
+                    <p>Your booking for the skill "${updatedBooking.skill.title}" with ${provider.name || 'the provider'}
+                       scheduled for ${new Date(updatedBooking.bookingTime).toLocaleString()} has been confirmed.</p>
+                    ${updatedBooking.providerMessageOnConfirm
+                        ? `<p><strong>Message from your provider:</strong></p><p style="padding: 10px; border: 1px solid #dddddd; background-color: #f9f9f9; border-radius: 4px;">${updatedBooking.providerMessageOnConfirm.replace(/\n/g, '<br>')}</p>`
+                        : ''
+                    }
+                    <p>Please contact your provider if you have any questions.</p>
                     <p>We look forward to your session!</p>
                 `;
-            } else if (status === 'cancelled_by_provider' && student.email) {
+            } else if (status.toLowerCase() === 'cancelled_by_provider' && student.email) {
                 emailRecipient = student.email;
                 emailSubject = `Your booking for "${booking.skill.title}" has been cancelled by the provider.`;
                 emailHtmlContent = `
@@ -191,7 +216,7 @@ const updateBookingStatus = async (req, res) => {
                        scheduled for ${new Date(booking.bookingTime).toLocaleString()} has been cancelled by the provider.</p>
                     <p>Provider: ${provider.name || 'N/A'}</p>
                 `;
-            } else if (status === 'cancelled_by_student' && provider.email) {
+            } else if (status.toLowerCase() === 'cancelled_by_student' && provider.email) {
                  emailRecipient = provider.email;
                  emailSubject = `A booking for your skill "${booking.skill.title}" has been cancelled by the student.`;
                  emailHtmlContent = `
@@ -202,7 +227,6 @@ const updateBookingStatus = async (req, res) => {
             }
         }
 
-
         if (emailRecipient && emailSubject && emailHtmlContent) {
             try {
                 await sendEmail(emailRecipient, emailSubject, emailHtmlContent);
@@ -210,9 +234,7 @@ const updateBookingStatus = async (req, res) => {
                 console.error("Failed to send booking status update email, but status was updated:", emailError);
             }
         }
-
         res.status(200).json(updatedBooking);
-
     } catch (error) {
         console.error("Error updating booking status:", error);
         res.status(500).json({ message: "Failed to update booking status", error: error.message });
