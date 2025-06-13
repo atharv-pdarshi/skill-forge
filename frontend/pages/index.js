@@ -1,10 +1,13 @@
+// frontend/pages/index.js
 import Head from 'next/head';
 import Link from 'next/link';
-import { Container, Row, Col, Button, Card } from 'react-bootstrap';
+import { Container, Row, Col, Button, Card, Spinner, Alert } from 'react-bootstrap'; // Added Spinner, Alert
 import { 
-  FaLightbulb, FaCode, FaPalette, FaMusic, FaBookOpen, 
+  FaLightbulb, FaCode, FaPalette, FaMusic, // Removed FaBookOpen as it's not in the smaller icon list now
   FaComments, FaChalkboardTeacher, FaUsers, FaStar, FaRetweet 
-} from 'react-icons/fa'; 
+} from 'react-icons/fa';
+import React, { useState, useEffect } from 'react'; // Import useState, useEffect
+import api from '../services/api'; // Your API service
 
 // Helper function to cycle through icons or pick one based on item
 const getFeaturedIcon = (index) => { 
@@ -12,17 +15,41 @@ const getFeaturedIcon = (index) => {
     <FaCode key="code" />, 
     <FaPalette key="palette" />, 
     <FaMusic key="music" />,
+    // If you want more variety for more than 3 featured skills, add more icons here:
+    // <FaBookOpen key="book" />,
+    // <FaLightbulb key="lightbulb" /> 
   ];
-  return icons[index % icons.length];
+  return icons[index % icons.length]; // Cycle through the icons
 };
 
-
 export default function Home() {
+  const [featuredSkills, setFeaturedSkills] = useState([]);
+  const [loadingFeatured, setLoadingFeatured] = useState(true);
+  const [errorFeatured, setErrorFeatured] = useState('');
+
+  useEffect(() => {
+    const fetchFeaturedSkills = async () => {
+      setLoadingFeatured(true);
+      setErrorFeatured('');
+      try {
+        // Fetch top 3 recently added skills
+        const response = await api.get('/skills?limit=3&sortBy=createdAt&sortOrder=desc');
+        setFeaturedSkills(response.data);
+      } catch (err) {
+        console.error("Failed to fetch featured skills:", err);
+        setErrorFeatured("Could not load featured skills at this time. Please try again later.");
+      }
+      setLoadingFeatured(false);
+    };
+
+    fetchFeaturedSkills();
+  }, []); // Empty dependency array, runs once on mount
+
   return (
     <>
       <Head>
-        <title>{`SkillForge - Share Your Passion, Discover Your Potential`}</title>
-        <meta name="description" content={`SkillForge is the ultimate platform to learn new skills from experts or share your own knowledge with an eager community. Explore, teach, connect, and grow.`} />
+        <title>SkillForge - Share Your Passion, Discover Your Potential</title>
+        <meta name="description" content="SkillForge is the ultimate platform to learn new skills from experts or share your own knowledge with an eager community. Explore, teach, connect, and grow." />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
@@ -30,11 +57,11 @@ export default function Home() {
       <div className="text-light text-center py-5" style={{ backgroundColor: 'var(--bg-primary-dark)', borderBottom: '1px solid var(--border-color-dark)'}}>
         <Container style={{ paddingTop: '3rem', paddingBottom: '4rem' }}>
           <h1 className="display-3 fw-bolder mb-3">
-            {`Ignite Your Passion.`} <span style={{ color: 'var(--accent-color)'}}>Forge</span> {`Your Future.`}
+            Ignite Your Passion. <span style={{ color: 'var(--accent-color)'}}>Forge</span> Your Future.
           </h1>
           <p className="lead col-lg-8 mx-auto mb-4" style={{color: 'var(--text-secondary-dark)'}}>
-            {`Welcome to SkillForge – the premier community marketplace where knowledge seekers connect with passionate experts.
-            Whether you're looking to master a new skill or share your unique talents, your journey starts here.`}
+            Welcome to SkillForge – the premier community marketplace where knowledge seekers connect with passionate experts.
+            Whether you're looking to master a new skill or share your unique talents, your journey starts here.
           </p>
           <div>
             <Link href="/skills" passHref>
@@ -61,10 +88,10 @@ export default function Home() {
                 <div style={{ fontSize: '3rem', color: 'var(--accent-color)', marginBottom: '1rem' }}><FaLightbulb /></div>
                 <Card.Title as="h3" className="fw-semibold">Discover & Learn</Card.Title>
                 <Card.Text style={{color: 'var(--text-secondary-dark)', flexGrow: 1}}>
-                  {`Dive into a diverse catalog of skills taught by passionate individuals. From tech to arts, find your next learning adventure.`}
+                  Dive into a diverse catalog of skills taught by passionate individuals. From tech to arts, find your next learning adventure.
                 </Card.Text>
                 <Link href="/skills" passHref>
-                    <Button variant="outline-primary" className="mt-auto" style={{borderColor: 'var(--accent-color)', color: 'var(--accent-color)'}}>Browse All Skills</Button>
+                    <Button variant="outline-primary" className="mt-auto custom-accent-outline-btn">Browse All Skills</Button>
                 </Link>
               </Card.Body>
             </Card>
@@ -75,10 +102,10 @@ export default function Home() {
                 <div style={{ fontSize: '3rem', color: 'var(--accent-color)', marginBottom: '1rem' }}><FaChalkboardTeacher /></div>
                 <Card.Title as="h3" className="fw-semibold">Share & Teach</Card.Title>
                 <Card.Text style={{color: 'var(--text-secondary-dark)', flexGrow: 1}}>
-                  {`Have a skill you're proud of? Become a provider, create listings, manage bookings, and earn by sharing your expertise.`}
+                  Have a skill you're proud of? Become a provider, create listings, manage bookings, and earn by sharing your expertise.
                 </Card.Text>
                  <Link href="/auth/register" passHref>
-                    <Button variant="outline-primary" className="mt-auto" style={{borderColor: 'var(--accent-color)', color: 'var(--accent-color)'}}>Become a Provider</Button>
+                    <Button variant="outline-primary" className="mt-auto custom-accent-outline-btn">Become a Provider</Button>
                 </Link>
               </Card.Body>
             </Card>
@@ -89,10 +116,10 @@ export default function Home() {
                 <div style={{ fontSize: '3rem', color: 'var(--accent-color)', marginBottom: '1rem' }}><FaUsers /></div>
                 <Card.Title as="h3" className="fw-semibold">Connect & Grow</Card.Title>
                 <Card.Text style={{color: 'var(--text-secondary-dark)', flexGrow: 1}}>
-                  {`Join a vibrant community. Interact through bookings, leave reviews, and build your network of learners and experts.`}
+                  Join a vibrant community. Interact through bookings, leave reviews, and build your network of learners and experts.
                 </Card.Text>
                  <Link href="/auth/login" passHref>
-                    <Button variant="outline-primary" className="mt-auto" style={{borderColor: 'var(--accent-color)', color: 'var(--accent-color)'}}>Join the Community</Button>
+                    <Button variant="outline-primary" className="mt-auto custom-accent-outline-btn">Join the Community</Button>
                 </Link>
               </Card.Body>
             </Card>
@@ -100,68 +127,51 @@ export default function Home() {
         </Row>
       </Container>
 
-      {/* Featured Skills Section*/}
+      {/* Featured Skills Section (Now Dynamic) */}
       <div style={{ backgroundColor: 'var(--bg-secondary-dark)', paddingBlock: '4rem', borderTop: '1px solid var(--border-color-dark)', borderBottom: '1px solid var(--border-color-dark)'}}>
         <Container>
-          <h2 className="text-center mb-5 display-5 fw-bold">Popular Skills To <span style={{ color: 'var(--accent-color)'}}>Explore</span></h2>
-          <Row className="g-4 text-center">
-            <Col md={4}>
-              <Card className="h-100 shadow-sm">
-                <Card.Body className="d-flex flex-column p-4">
-                  <div style={{ fontSize: '3.5rem', color: 'var(--accent-color)', marginBottom: '1.5rem', height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {getFeaturedIcon(0)}
-                  </div>
-                  <Card.Title as="h4" className="fw-semibold">Intro to Web Development</Card.Title>
-                  <Card.Text style={{color: 'var(--text-secondary-dark)', flexGrow: 1, fontSize: '0.95rem'}}>
-                    {`Learn the fundamentals of HTML, CSS, and JavaScript to build your first interactive websites.`}
-                  </Card.Text>
-                  <Link href={`/skills/placeholder-web-dev`} passHref>
-                      <Button variant="primary" className="mt-auto w-100" style={{backgroundColor: 'var(--accent-color)', borderColor: 'var(--accent-color)'}}>
-                          Learn More
-                      </Button>
-                  </Link>
-                </Card.Body>
-              </Card>
-            </Col>
-
-            <Col md={4}>
-              <Card className="h-100 shadow-sm">
-                <Card.Body className="d-flex flex-column p-4">
-                  <div style={{ fontSize: '3.5rem', color: 'var(--accent-color)', marginBottom: '1.5rem', height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {getFeaturedIcon(1)}
-                  </div>
-                  <Card.Title as="h4" className="fw-semibold">Digital Art & Illustration</Card.Title>
-                  <Card.Text style={{color: 'var(--text-secondary-dark)', flexGrow: 1, fontSize: '0.95rem'}}>
-                    {`Unleash your creativity with digital tools. Master techniques for stunning illustrations and concept art.`}
-                  </Card.Text>
-                  <Link href={`/skills/placeholder-digital-art`} passHref>
-                      <Button variant="primary" className="mt-auto w-100" style={{backgroundColor: 'var(--accent-color)', borderColor: 'var(--accent-color)'}}>
-                          Learn More
-                      </Button>
-                  </Link>
-                </Card.Body>
-              </Card>
-            </Col>
-
-            <Col md={4}>
-              <Card className="h-100 shadow-sm">
-                <Card.Body className="d-flex flex-column p-4">
-                  <div style={{ fontSize: '3.5rem', color: 'var(--accent-color)', marginBottom: '1.5rem', height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {getFeaturedIcon(2)}
-                  </div>
-                  <Card.Title as="h4" className="fw-semibold">Acoustic Guitar for Beginners</Card.Title>
-                  <Card.Text style={{color: 'var(--text-secondary-dark)', flexGrow: 1, fontSize: '0.95rem'}}>
-                    {`Strum your first chords and play your favorite songs. No prior musical experience needed!`}
-                  </Card.Text>
-                  <Link href={`/skills/placeholder-guitar`} passHref>
-                      <Button variant="primary" className="mt-auto w-100" style={{backgroundColor: 'var(--accent-color)', borderColor: 'var(--accent-color)'}}>
-                          Learn More
-                      </Button>
-                  </Link>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
+          <h2 className="text-center mb-5 display-5 fw-bold">
+            Freshly <span style={{ color: 'var(--accent-color)'}}>Forged</span> Skills
+          </h2>
+          {loadingFeatured ? (
+            <div className="text-center">
+              <Spinner animation="border" style={{color: 'var(--accent-color)', width: '3rem', height: '3rem'}}/>
+              <p style={{color: 'var(--text-secondary-dark)'}} className="mt-3 lead">Loading exciting skills...</p>
+            </div>
+          ) : errorFeatured ? (
+            <Alert variant="warning" className="text-center py-3">{errorFeatured}</Alert>
+          ) : featuredSkills.length > 0 ? (
+            <Row className="g-4 text-center">
+              {featuredSkills.map((skill, index) => (
+                <Col md={4} key={skill.id}>
+                  <Card className="h-100 shadow-sm">
+                    <Card.Body className="d-flex flex-column p-4">
+                      <div style={{ fontSize: '3.5rem', color: 'var(--accent-color)', marginBottom: '1.5rem', height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {getFeaturedIcon(index)}
+                      </div>
+                      <Card.Title as="h4" className="fw-semibold" style={{minHeight: '3.5em'}}> {/* minHeight for title consistency */}
+                        {skill.title}
+                      </Card.Title>
+                      <Card.Text style={{color: 'var(--text-secondary-dark)', flexGrow: 1, fontSize: '0.95rem', minHeight: '5em'}}> {/* minHeight for description consistency */}
+                        {skill.description 
+                          ? (skill.description.length > 100 ? `${skill.description.substring(0, 97)}...` : skill.description)
+                          : 'An exciting new skill offered by our community! Click to learn more.'}
+                      </Card.Text>
+                      <Link href={`/skills/${skill.id}`} passHref>
+                          <Button variant="primary" className="mt-auto w-100" style={{backgroundColor: 'var(--accent-color)', borderColor: 'var(--accent-color)'}}>
+                              Learn More
+                          </Button>
+                      </Link>
+                    </Card.Body>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          ) : (
+            <div className="text-center py-3">
+                <p className="lead" style={{color: 'var(--text-secondary-dark)'}}>No featured skills available at the moment. <br/> Check back soon or explore all available skills!</p>
+            </div>
+          )}
           <div className="text-center mt-5">
             <Link href="/skills" passHref>
               <Button variant="outline-light" size="lg" style={{borderColor: 'var(--accent-color)', color: 'var(--accent-color)'}}>
@@ -180,21 +190,21 @@ export default function Home() {
             <div className="p-3">
               <div style={{ fontSize: '2.5rem', color: 'var(--accent-color)', marginBottom: '0.5rem' }}><FaStar /></div>
               <h4 className="fw-semibold">Quality Content</h4>
-              <p style={{color: 'var(--text-secondary-dark)'}}>{`Learn from vetted experts and passionate individuals dedicated to sharing their best.`}</p>
+              <p style={{color: 'var(--text-secondary-dark)'}}>Learn from vetted experts and passionate individuals dedicated to sharing their best.</p>
             </div>
           </Col>
           <Col md={4}>
             <div className="p-3">
               <div style={{ fontSize: '2.5rem', color: 'var(--accent-color)', marginBottom: '0.5rem' }}><FaRetweet /></div>
               <h4 className="fw-semibold">Flexible Learning</h4>
-              <p style={{color: 'var(--text-secondary-dark)'}}>{`Book sessions that fit your schedule. Learn at your own pace, anytime, anywhere.`}</p>
+              <p style={{color: 'var(--text-secondary-dark)'}}>Book sessions that fit your schedule. Learn at your own pace, anytime, anywhere.</p>
             </div>
           </Col>
           <Col md={4}>
             <div className="p-3">
               <div style={{ fontSize: '2.5rem', color: 'var(--accent-color)', marginBottom: '0.5rem' }}><FaComments /></div>
               <h4 className="fw-semibold">Community Driven</h4>
-              <p style={{color: 'var(--text-secondary-dark)'}}>{`Join a supportive network, get feedback, and connect with like-minded individuals.`}</p>
+              <p style={{color: 'var(--text-secondary-dark)'}}>Join a supportive network, get feedback, and connect with like-minded individuals.</p>
             </div>
           </Col>
         </Row>

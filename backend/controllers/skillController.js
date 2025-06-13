@@ -29,8 +29,18 @@ const createSkill = async (req, res) => {
 
 // Get all Skills
 const getAllSkills = async (req, res) => {
+  
   try {
-    const { search, category, minPrice, maxPrice, userId } = req.query;
+    const { 
+        search, 
+        category, 
+        minPrice, 
+        maxPrice, 
+        userId, 
+        sortBy, 
+        sortOrder, 
+        limit // Added limit
+    } = req.query;
 
     const whereClause = {};
 
@@ -43,42 +53,59 @@ const getAllSkills = async (req, res) => {
     }
 
     // 2. Category Filter
-    if (category) {
-      whereClause.category = { equals: category, mode: 'insensitive' };
+    if (category) { // Using the destructured 'category'
+      whereClause.category = { equals: category.trim(), mode: 'insensitive' };
     }
 
     // 3. Price Range Filter
-    if (minPrice && maxPrice) {
-      whereClause.pricePerHour = {
-        gte: parseFloat(minPrice), 
-        lte: parseFloat(maxPrice),
-      };
-    } else if (minPrice) {
-      whereClause.pricePerHour = {
-        gte: parseFloat(minPrice),
-      };
-    } else if (maxPrice) {
-      whereClause.pricePerHour = {
-        lte: parseFloat(maxPrice),
-      };
+    if (minPrice !== undefined || maxPrice !== undefined) {
+        whereClause.pricePerHour = {};
+        if (minPrice !== undefined && !isNaN(parseFloat(minPrice))) {
+            whereClause.pricePerHour.gte = parseFloat(minPrice);
+        }
+        if (maxPrice !== undefined && !isNaN(parseFloat(maxPrice))) {
+            whereClause.pricePerHour.lte = parseFloat(maxPrice);
+        }
+        
+        if (Object.keys(whereClause.pricePerHour).length === 0) {
+            delete whereClause.pricePerHour;
+        }
     }
+
 
     // 4. User ID Filter
     if (userId) {
         whereClause.userId = userId;
     }
-
-    const skills = await prisma.skill.findMany({
-      where: whereClause,
-      include: {
-        user: {
-          select: { id: true, name: true, email: true }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
+    
+    // 5. Sorting
+    let orderByClause = {};
+    if (sortBy) {
+      if (['title', 'pricePerHour', 'createdAt'].includes(sortBy)) {
+        orderByClause[sortBy] = sortOrder === 'desc' ? 'desc' : 'asc';
+      } else {
+        orderByClause.createdAt = 'desc'; // Default to newest if sortBy is invalid
       }
-    });
+    } else {
+      orderByClause.createdAt = 'desc'; // Default sort
+    }
+
+    // Prepare query options for Prisma
+    const queryOptions = {
+        where: whereClause,
+        include: {
+          user: {
+            select: { id: true, name: true, email: true } 
+          }
+        },
+        orderBy: orderByClause
+    };
+
+    if (limit && !isNaN(parseInt(limit)) && parseInt(limit) > 0) {
+        queryOptions.take = parseInt(limit); 
+    }
+
+    const skills = await prisma.skill.findMany(queryOptions);
 
     res.status(200).json(skills);
   } catch (error) {
@@ -132,8 +159,11 @@ const updateSkill = async (req, res) => {
     const updateData = {};
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
-    if (category !== undefined) updateData.category = category;
-    if (pricePerHour !== undefined) updateData.pricePerHour = pricePerHour ? parseFloat(pricePerHour) : null;
+    // Use req.body.category directly to allow setting it to an empty string if desired
+    if (req.body.hasOwnProperty('category')) updateData.category = req.body.category; 
+    if (req.body.hasOwnProperty('pricePerHour')) {
+        updateData.pricePerHour = req.body.pricePerHour !== null && req.body.pricePerHour !== '' ? parseFloat(req.body.pricePerHour) : null;
+    }
 
 
     const updatedSkill = await prisma.skill.update({

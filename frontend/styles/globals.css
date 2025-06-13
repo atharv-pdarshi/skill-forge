@@ -104,7 +104,7 @@ html[data-bs-theme="dark"] .form-select:focus {
   background-color: var(--bg-secondary-dark);
   color: var(--text-primary-dark);
   border-color: var(--accent-color);
-  box-shadow: 0 0 0 0.25rem rgba(var(--accent-color-rgb), 0.25); /* Use accent for focus ring */
+  box-shadow: 0 0 0 0.25rem rgba(var(--accent-color-rgb), 0.25); 
 }
 
 html[data-bs-theme="dark"] .modal-content {
@@ -118,7 +118,6 @@ html[data-bs-theme="dark"] .modal-footer {
   border-top: 1px solid var(--border-color-dark);
 }
 
-/* Custom Scrollbar (Optional - Webkit browsers like Chrome/Safari/Edge) */
 html[data-bs-theme="dark"] ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -129,10 +128,23 @@ html[data-bs-theme="dark"] ::-webkit-scrollbar-track {
 html[data-bs-theme="dark"] ::-webkit-scrollbar-thumb {
   background-color: var(--border-color-dark);
   border-radius: 10px;
-  border: 2px solid var(--bg-primary-dark); /* Creates padding around thumb */
+  border: 2px solid var(--bg-primary-dark); 
 }
 html[data-bs-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   background-color: var(--text-secondary-dark);
 }
 
-/* Add more specific overrides as you see fit */
+.custom-accent-outline-btn {
+  border-color: var(--accent-color) !important; 
+  color: var(--accent-color) !important;     
+  background-color: transparent; 
+}
+
+.custom-accent-outline-btn:hover,
+.custom-accent-outline-btn:focus,
+.custom-accent-outline-btn:active {
+  background-color: var(--accent-color) !important;
+  color: var(--bg-primary-dark) !important; 
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 0.25rem rgba(var(--accent-color-rgb), 0.35); 
+}

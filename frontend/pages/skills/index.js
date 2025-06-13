@@ -18,7 +18,9 @@ const SkillsPage = () => {
     try {
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
-      if (category) params.append('category', category);
+      if (category) params.append('category', category.trim());
+
+      console.log("Fetching skills with params:", params.toString());
 
       const response = await api.get(`/skills?${params.toString()}`);
       setSkills(response.data);
@@ -90,7 +92,7 @@ const SkillsPage = () => {
                     type="text"
                     placeholder="e.g., Technology, Music, Arts"
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                    onChange={(e) => setCategory(e.target.value.trim())}
                     style={{backgroundColor: 'var(--bg-primary-dark)', color: 'var(--text-primary-dark)', borderColor: 'var(--border-color-dark)'}}
                   />
                 </Form.Group>
